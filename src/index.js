@@ -1,14 +1,22 @@
-var fs = require('fs');
-var reader = require('./reader.js');
+"use strict";
+
+//import * as fs from 'fs';
+//import {jsonReader} from 'lib/reader.mjs';
+//import {join} from 'path';
+
+const fs = require('fs');
+const reader = require('readjson');
+
+
 onInit();
 
-var files = fs.readdirSync('../tmp/');
+var files = fs.readdirSync('tmp/');
+
 files.forEach(file => {
-    file = '../tmp/'+file;
-    reader.jsonReader(file, (err, object)=>{
+    file = 'tmp/'+file;
+    reader(file, (err, object)=>{
         console.log(object);
     });
-    console.log(reader.toString());
 });
 
 function onInit(){
