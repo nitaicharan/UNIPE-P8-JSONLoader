@@ -13,9 +13,10 @@ onInit();
 var files = fs.readdirSync('tmp/');
 
 files.forEach(file => {
+    var objects = new Array();
     file = 'tmp/'+file;
     reader(file, (err, object)=>{
-        console.log(object);
+        objects.push(object);
     });
 });
 
