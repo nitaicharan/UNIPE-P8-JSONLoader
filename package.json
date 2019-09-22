@@ -17,7 +17,6 @@
   },
   "homepage": "https://github.com/nitaicharan/UNIPE-P8-JSONLoader#readme",
   "dependencies": {
-    "@elastic/elasticsearch": "^7.3.0",
-    "readjson": "^1.1.4"
+    "@elastic/elasticsearch": "^7.3.0"
   }
 }
