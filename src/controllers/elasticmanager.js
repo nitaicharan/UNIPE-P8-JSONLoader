@@ -1,80 +1,104 @@
-const { Client } = require('@elastic/elasticsearch');
+'use strict'
 
+require('array.prototype.flatmap').shim()
+const { Client } = require('@elastic/elasticsearch')
 const client = new Client({
     node: 'http://localhost:9200'
-    ,log: 'trace'
-});
+})
 
-function mappings(index, err, cb){
-    client.indices.create({
-        index: index
-        ,body: {
-            "mappings": {
-                "properties": {
-                    "nomeParlamentar": { "type": "text"  },
-                    "cpf": { "type": "text"  },
-                    "idDeputado": { "type": "text"  },
-                    "numeroCarteiraParlamentar": { "type": "text"  },
-                    "legislatura": { "type": "text"  },
-                    "siglaUF": { "type": "text"  },
-                    "siglaPartido": { "type": "text"  },
-                    "codigoLegislatura": { "type": "text"  },
-                    "numeroSubCota": { "type": "text"  },
-                    "descricao": { "type": "text"  },
-                    "numeroEspecificacaoSubCota": { "type": "text"  },
-                    "descricaoEspecificacao": { "type": "text"  },
-                    "fornecedor": { "type": "text"  },
-                    "cnpjCPF": { "type": "text"  },
-                    "numero": { "type": "text"  },
-                    "tipoDocumento": { "type": "text"  },
-                    "dataEmissao": { "type": "text"  },
-                    "valorDocumento": { "type": "text"  },
-                    "valorGlosa": { "type": "text"  },
-                    "valorLiquido": { "type": "text"  },
-                    "mes": { "type": "text"  },
-                    "ano": { "type": "text"  },
-                    "parcela": { "type": "text"  },
-                    "passageiro": { "type": "text"  },
-                    "trecho": { "type": "text"  },
-                    "lote": { "type": "text"  },
-                    "ressarcimento": { "type": "text"  },
-                    "restituicao": { "type": "text"  },
-                    "numeroDeputadoID": { "type": "text"  },
-                    "idDocumento": { "type": "text"  }
+async function run(index, body) {
+    await client.indices.create(
+        {
+            "index": index 
+            ,"body": {
+                "mappings": {
+                    "properties": {
+                        "nomeParlamentar": { "type": "text"  },
+                        "cpf": { "type": "text"  },
+                        "idDeputado": {
+                            "type" : "integer"
+                        },
+                        "numeroCarteiraParlamentar": { "type": "text"  },
+                        "legislatura": {
+                            "type":   "date",
+                            "format": "yyyy"
+                        },
+                        "siglaUF": { "type": "text"  },
+                        "siglaPartido": { "type": "text"  },
+                        "codigoLegislatura": {
+                            "type" : "integer"
+                        },
+                        "numeroSubCota": {
+                            "type" : "integer"
+                        },
+                        "descricao": { "type": "text"  },
+                        "numeroEspecificacaoSubCota": {
+                            "type" : "integer"
+                        },
+                        "descricaoEspecificacao": { "type": "text"  },
+                        "fornecedor": { "type": "text"  },
+                        "cnpjCPF": { "type": "text"  },
+                        "numero": { "type": "text"  },
+                        "tipoDocumento": { "type": "text"  },
+                        "dataEmissao": {
+                            "type":   "date",
+                            "format": "yyyy-MM-dd'T'HH:mm:ss"
+                        },
+                        "valorDocumento": { "type": "text"  },
+                        "valorGlosa": { "type": "text"  },
+                        "valorLiquido": { "type": "text"  },
+                        "mes": {
+                            "type":   "date",
+                            "format": "MM"
+                        },
+                        "ano": {
+                            "type":   "date",
+                            "format": "yyyy"
+                        },
+                        "parcela": {
+                            "type" : "integer"
+                        },
+                        "passageiro": { "type": "text"  },
+                        "trecho": { "type": "text"  },
+                        "lote": { "type": "text"  },
+                        "ressarcimento": { "type": "text"  },
+                        "restituicao": { "type": "text"  },
+                        "numeroDeputadoID": {
+                            "type" : "integer"
+                        },
+                        "idDocumento": {
+                            "type" : "integer"
+                        }
+                    }
                 }
             }
         }
-    }, function(error,response,status) {
-        if (error) {
-            err(response);
-            return;
-        }
-        else {
-            cb(response);
-            return;
-        }
-    });
-};
+        , { ignore: [400] })
 
-function create(index,type,id,body,err,cb){
-    client.create({
-        index: index
-        ,type: type
-        ,id: id
-        ,body: body
-    }, function(error, response) {
-        if (error) {
-            err(response);
-            return;
-        }
-        else {
-            cb(response);
-            return;
-        }
-    });
+    body = body.flatMap(doc => [{ index: { _index: index } }, doc])
+
+    const { body: bulkResponse } = await client.bulk({ refresh: true, body })
+
+    if (bulkResponse.errors) {
+        const erroredDocuments = []
+        bulkResponse.items.forEach((action, i) => {
+            const operation = Object.keys(action)[0]
+            if (action[operation].error) {
+                erroredDocuments.push({
+                    status: action[operation].status,
+                    error: action[operation].error,
+                    operation: body[i * 2],
+                    document: body[i * 2 + 1]
+                })
+            }
+        })
+        console.log(erroredDocuments)
+    }
+
+    const { body: count } = await client.count({ index: index })
+    console.log(count)
 }
 
-module.exports={
-    mappings
-    ,create
+module.exports = {
+    run
 }
